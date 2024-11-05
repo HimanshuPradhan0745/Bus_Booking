@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bus Booking</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #ccc; }
+        label, select, input, button { display: block; margin: 5px 0; }
+        .booking-details, .filter-container { margin-top: 20px; }
+        .user-details { display: flex; justify-content: space-between; margin-top: 10px; padding: 5px; border-bottom: 1px solid #ddd; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Bus Booking</h2>
+
+    
+    <div class="filter-container">
+        <label for="filter">Filter by Bus:</label>
+        <select id="filter">
+            <option value="">All Buses</option>
+            <option value="bus1">Bus 1</option>
+            <option value="bus2">Bus 2</option>
+            <option value="bus3">Bus 3</option>
+            <option value="bus4">Bus 4</option>
+        </select>
+    </div>
+
+    
+    <form id="bookingForm">
+        <label for="name">Name:</label>
+        <input type="text" id="name" required>
+
+        <label for="email">Email:</label>
+        <input type="email" id="email" required>
+
+        <label for="phone">Phone Number:</label>
+        <input type="tel" id="phone" required>
+
+        <label for="bus">Select Bus:</label>
+        <select id="bus" required>
+            <option value="bus1">Bus 1</option>
+            <option value="bus2">Bus 2</option>
+            <option value="bus3">Bus 3</option>
+            <option value="bus4">Bus 4</option>
+        </select>
+
+        <button type="submit">Book</button>
+    </form>
+
+    
+    <div class="booking-details" id="bookingDetails">
+        <h3>Booking Details</h3>
+        <div id="userList"></div>
+    </div>
+</div>
+
+<script>
+    const apiEndpoint = 'https://crudcrud.com/api/dae182e961014ed2a2ae129d4f53d020/bookings';
+    const form = document.getElementById('bookingForm');
+    const userList = document.getElementById('userList');
+    const filter = document.getElementById('filter');
+
+    document.addEventListener('DOMContentLoaded', fetchBookings);
+    filter.addEventListener('change', fetchBookings);
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const user = {
+            name: document.getElementById('name').value,
+            email: document.getElementById('email').value,
+            phone: document.getElementById('phone').value,
+            bus: document.getElementById('bus').value
+        };
+        await createBooking(user);
+        form.reset();
+        fetchBookings();
+    });
+
+    async function fetchBookings() {
+        userList.innerHTML = ''; 
+        try {
+            const response = await fetch(apiEndpoint);
+            if (!response.ok) {
+                throw new Error('Failed to fetch bookings');
+            }
+
+            const users = await response.json();
+            console.log("Fetched users:", users);
+            
+            const selectedBus = filter.value;
+            const filteredUsers = selectedBus ? users.filter(user => user.bus === selectedBus) : users;
+
+            if (filteredUsers.length === 0) {
+                userList.innerHTML = '<p>No bookings available.</p>';
+            } else {
+                filteredUsers.forEach(user => displayUser(user));
+            }
+        } catch (error) {
+            console.error('Error fetching bookings:', error);
+            userList.innerHTML = '<p>Failed to load bookings. Please try again later.</p>';
+        }
+    }
+
+    async function createBooking(user) {
+        try {
+            const response = await fetch(apiEndpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(user)
+            });
+            if (!response.ok) {
+                throw new Error('Failed to create booking');
+            }
+        } catch (error) {
+            console.error('Error creating booking:', error);
+        }
+    }
+
+    function displayUser(user) {
+        const userDiv = document.createElement('div');
+        userDiv.classList.add('user-details');
+        userDiv.innerHTML = `
+            <span><strong>${user.name}</strong> (${user.bus}) - ${user.phone}</span>
+            <div>
+                <button onclick="editBooking('${user._id}')">Edit</button>
+                <button onclick="deleteBooking('${user._id}')">Delete</button>
+            </div>
+        `;
+        userList.appendChild(userDiv);
+    }
+
+    async function deleteBooking(id) {
+        try {
+            const response = await fetch(`${apiEndpoint}/${id}`, { method: 'DELETE' });
+            if (!response.ok) throw new Error('Failed to delete booking');
+            fetchBookings();
+        } catch (error) {
+            console.error('Error deleting booking:', error);
+        }
+    }
+
+    async function editBooking(id) {
+        const newName = prompt('Enter new name:');
+        const newEmail = prompt('Enter new email:');
+        const newPhone = prompt('Enter new phone number:');
+        const newBus = prompt('Enter new bus (bus1, bus2, bus3, or bus4):');
+        
+        if (newName && newEmail && newPhone && newBus) {
+            try {
+                const response = await fetch(`${apiEndpoint}/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: newName, email: newEmail, phone: newPhone, bus: newBus })
+                });
+                if (!response.ok) throw new Error('Failed to edit booking');
+                fetchBookings();
+            } catch (error) {
+                console.error('Error editing booking:', error);
+            }
+        }
+    }
+</script>
+
+</body>
+</html>
